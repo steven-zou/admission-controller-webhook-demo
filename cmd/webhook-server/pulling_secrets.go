@@ -23,6 +23,7 @@ import (
 	"k8s.io/client-go/rest"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"log"
 )
 
 type dockerAuth struct {
@@ -80,6 +81,9 @@ func makeSecret(namespace string, user string, pass string) error {
 			return err
 		}
 
+		authData := makeAuth(user, pass)
+		log.Printf("auth data=%s", string(authData))
+
 		// create new
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
@@ -89,16 +93,18 @@ func makeSecret(namespace string, user string, pass string) error {
 					"owner": "tars",
 				},
 			},
-			Type: "kubernetes.io/dockerconfigjson",
+			Type: corev1.SecretTypeDockerConfigJson,
 			Data:map[string][]byte{
-				".dockerconfigjson": makeAuth(user, pass),
+				".dockerconfigjson": authData,
 			},
 		}
 
-		_, err = clientset.CoreV1().Secrets(namespace).Create(secret)
+		createdSec, err := clientset.CoreV1().Secrets(namespace).Create(secret)
 		if err != nil {
 			return err
 		}
+
+		log.Printf("Secret %s:%s@%s created", createdSec.Namespace, createdSec.Name, createdSec.Type)
 	}
 
 	// do nothing
