@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -88,6 +89,9 @@ func applySecurityDefaults(req *v1beta1.AdmissionRequest) ([]patchOperation, err
 
 	// Parse the Pod object.
 	raw := req.Object.Raw
+
+	log.Printf("Pod coming: %s", string(raw))
+
 	pod := corev1.Pod{}
 
 	if _, _, err := universalDeserializer.Decode(raw, nil, &pod); err != nil {
@@ -100,8 +104,8 @@ func applySecurityDefaults(req *v1beta1.AdmissionRequest) ([]patchOperation, err
 	// Check the images
 	for i, c := range pod.Spec.Containers{
 		if len(c.Image) > 0 {
-			cp := &c
-			cp.Image = setImage(c.Image)
+			c.Image = setImage(c.Image)
+			pod.Spec.Containers[i] = c
 			log.Printf("Mutate image of main containers[%d]: %s\n", i, pod.Spec.Containers[i].Image)
 
 			patches = append(patches, patchOperation{
@@ -127,6 +131,13 @@ func applySecurityDefaults(req *v1beta1.AdmissionRequest) ([]patchOperation, err
 			})
 		}
 	}
+
+	data, err := json.Marshal(pod)
+	if err != nil {
+		log.Printf("marshal error: %v", err)
+	}
+
+	log.Printf("Matuated pod: %s", string(data))
 
 	return patches, nil
 }
