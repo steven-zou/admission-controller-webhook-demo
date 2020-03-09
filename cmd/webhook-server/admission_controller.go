@@ -98,7 +98,9 @@ func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) (
 	var patchOps []patchOperation
 	// Apply the admit() function only for non-Kubernetes namespaces. For objects in Kubernetes namespaces, return
 	// an empty set of patch operations.
+	log.Printf("Namespace: %s\n", admissionReviewReq.Request.Namespace)
 	if !isKubeNamespace(admissionReviewReq.Request.Namespace) {
+		log.Println("admitting....")
 		patchOps, err = admit(admissionReviewReq.Request)
 	}
 
