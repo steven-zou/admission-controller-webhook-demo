@@ -58,7 +58,7 @@ func isKubeNamespace(ns string) bool {
 // bytes.
 func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) ([]byte, error) {
 	// Step 1: Request validation. Only handle POST requests with a body and json content type.
-
+    log.Print("doServeAdmitFunc()....")
 	if r.Method != http.MethodPost {
 		w.WriteHeader(http.StatusMethodNotAllowed)
 		return nil, fmt.Errorf("invalid method %s, only POST requests are allowed", r.Method)
@@ -98,9 +98,9 @@ func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) (
 	var patchOps []patchOperation
 	// Apply the admit() function only for non-Kubernetes namespaces. For objects in Kubernetes namespaces, return
 	// an empty set of patch operations.
-	log.Printf("Namespace: %s\n", admissionReviewReq.Request.Namespace)
+	log.Printf("Namespace: %s", admissionReviewReq.Request.Namespace)
 	if !isKubeNamespace(admissionReviewReq.Request.Namespace) {
-		log.Println("admitting....")
+		log.Print("admitting....")
 		patchOps, err = admit(admissionReviewReq.Request)
 	}
 
@@ -132,7 +132,7 @@ func doServeAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) (
 
 // serveAdmitFunc is a wrapper around doServeAdmitFunc that adds error handling and logging.
 func serveAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) {
-	log.Print("Handling webhook request ...")
+	log.Print("Handling webhook request ....")
 
 	var writeErr error
 	if bytes, err := doServeAdmitFunc(w, r, admit); err != nil {
@@ -140,7 +140,7 @@ func serveAdmitFunc(w http.ResponseWriter, r *http.Request, admit admitFunc) {
 		w.WriteHeader(http.StatusInternalServerError)
 		_, writeErr = w.Write([]byte(err.Error()))
 	} else {
-		log.Print("Webhook request handled successfully")
+		log.Print("Webhook request handled successfully....")
 		_, writeErr = w.Write(bytes)
 	}
 
