@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -104,40 +103,33 @@ func applySecurityDefaults(req *v1beta1.AdmissionRequest) ([]patchOperation, err
 	// Check the images
 	for i, c := range pod.Spec.Containers{
 		if len(c.Image) > 0 {
-			c.Image = setImage(c.Image)
-			pod.Spec.Containers[i] = c
-			log.Printf("Mutate image of main containers[%d]: %s\n", i, pod.Spec.Containers[i].Image)
+			img := setImage(c.Image)
+
+			log.Printf("Mutate image of main containers[%d]: %s\n", i, img)
 
 			patches = append(patches, patchOperation{
-				Op:    "add",
-				Path:  "/spec/containers/image",
+				Op:    "replace",
+				Path:  fmt.Sprintf("/spec/containers/%d/image",i),
 				// The value must not be true if runAsUser is set to 0, as otherwise we would create a conflicting
 				// configuration ourselves.
-				Value: pod.Spec.Containers[i].Image,
+				Value: img,
 			})
 		}
 	}
 
 	for i, c := range pod.Spec.InitContainers {
 		if len(c.Image) > 0 {
-			pod.Spec.InitContainers[i].Image = setImage(c.Image)
-			log.Printf("Mutate image of init containers: %s\n", pod.Spec.InitContainers[i].Image)
+			img := setImage(c.Image)
+			log.Printf("Mutate image of init containers[%d]: %s\n", i, img)
 			patches = append(patches, patchOperation{
-				Op:    "add",
-				Path:  "/spec/initContainers/image",
+				Op:    "replace",
+				Path:  fmt.Sprintf("/spec/initContainers/%d/image",i),
 				// The value must not be true if runAsUser is set to 0, as otherwise we would create a conflicting
 				// configuration ourselves.
-				Value: pod.Spec.InitContainers[i].Image,
+				Value: img,
 			})
 		}
 	}
-
-	data, err := json.Marshal(pod)
-	if err != nil {
-		log.Printf("marshal error: %v", err)
-	}
-
-	log.Printf("Matuated pod: %s", string(data))
 
 	return patches, nil
 }
