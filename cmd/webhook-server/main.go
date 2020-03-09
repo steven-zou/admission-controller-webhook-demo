@@ -17,7 +17,6 @@ limitations under the License.
 package main
 
 import (
-	"errors"
 	"fmt"
 	"k8s.io/api/admission/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -25,6 +24,8 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"regexp"
+	"strings"
 )
 
 const (
@@ -35,7 +36,37 @@ const (
 
 var (
 	podResource = metav1.GroupVersionResource{Version: "v1", Resource: "pods"}
+	registry = "demo.goharbor.io"
 )
+
+func containDomain(domain string) bool {
+	RegExp := regexp.MustCompile(`^(([a-zA-Z]{1})|([a-zA-Z]{1}[a-zA-Z]{1})|([a-zA-Z]{1}[0-9]{1})|([0-9]{1}[a-zA-Z]{1})|([a-zA-Z0-9][a-zA-Z0-9-_]{1,61}[a-zA-Z0-9]))\.([a-zA-Z]{2,6}|[a-zA-Z0-9-]{2,30}\.[a-zA-Z
+ ]{2,3})\/`)
+
+	return RegExp.MatchString(domain)
+}
+
+func setImage(image string) string {
+	// image FQDN:
+	// registry/namespace/repository:tag
+	// e.g: docker.io/library/busybox:latest
+
+	// Image: busybox:latest
+	// stevenzou/busybox:latest
+	// busybox
+	// stevenzou/busybox
+
+	img := image
+	if !containDomain(image){
+		img = fmt.Sprintf("%s/%s", registry, img)
+	}
+
+	if strings.LastIndex(img,":") == -1 {
+		img = fmt.Sprintf("%s:%s", img, "latest")
+	}
+
+	return img
+}
 
 // applySecurityDefaults implements the logic of our example admission controller webhook. For every pod that is created
 // (outside of Kubernetes namespaces), it first checks if `runAsNonRoot` is set. If it is not, it is set to a default
@@ -62,35 +93,36 @@ func applySecurityDefaults(req *v1beta1.AdmissionRequest) ([]patchOperation, err
 		return nil, fmt.Errorf("could not deserialize pod object: %v", err)
 	}
 
-	// Retrieve the `runAsNonRoot` and `runAsUser` values.
-	var runAsNonRoot *bool
-	var runAsUser *int64
-	if pod.Spec.SecurityContext != nil {
-		runAsNonRoot = pod.Spec.SecurityContext.RunAsNonRoot
-		runAsUser = pod.Spec.SecurityContext.RunAsUser
-	}
-
 	// Create patch operations to apply sensible defaults, if those options are not set explicitly.
 	var patches []patchOperation
-	if runAsNonRoot == nil {
-		patches = append(patches, patchOperation{
-			Op:    "add",
-			Path:  "/spec/securityContext/runAsNonRoot",
-			// The value must not be true if runAsUser is set to 0, as otherwise we would create a conflicting
-			// configuration ourselves.
-			Value: runAsUser == nil || *runAsUser != 0,
-		})
 
-		if runAsUser == nil {
+	// Check the images
+	for i, c := range pod.Spec.Containers{
+		if len(c.Image) > 0 {
+			pod.Spec.Containers[i].Image = setImage(c.Image)
+			log.Printf("Mutate image of main containers: %s\n", pod.Spec.Containers[i].Image)
 			patches = append(patches, patchOperation{
 				Op:    "add",
-				Path:  "/spec/securityContext/runAsUser",
-				Value: 1234,
+				Path:  "/spec/containers/image",
+				// The value must not be true if runAsUser is set to 0, as otherwise we would create a conflicting
+				// configuration ourselves.
+				Value: pod.Spec.Containers[i].Image,
 			})
 		}
-	} else if *runAsNonRoot == true && (runAsUser != nil && *runAsUser == 0) {
-		// Make sure that the settings are not contradictory, and fail the object creation if they are.
-		return nil, errors.New("runAsNonRoot specified, but runAsUser set to 0 (the root user)")
+	}
+
+	for i, c := range pod.Spec.InitContainers {
+		if len(c.Image) > 0 {
+			pod.Spec.InitContainers[i].Image = setImage(c.Image)
+			log.Printf("Mutate image of init containers: %s\n", pod.Spec.InitContainers[i].Image)
+			patches = append(patches, patchOperation{
+				Op:    "add",
+				Path:  "/spec/initContainers/image",
+				// The value must not be true if runAsUser is set to 0, as otherwise we would create a conflicting
+				// configuration ourselves.
+				Value: pod.Spec.InitContainers[i].Image,
+			})
+		}
 	}
 
 	return patches, nil
