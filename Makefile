@@ -28,3 +28,8 @@ docker-image: image/webhook-server
 .PHONY: push-image
 push-image: docker-image
 	docker push $(IMAGE)
+
+.PHONY: deploy
+deploy: push-image
+	kubectl delete namespace webhook-demo
+	$PWD/deploy.sh
