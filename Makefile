@@ -16,7 +16,7 @@
 
 .DEFAULT_GOAL := deploy
 
-IMAGE ?= stevenzou/admission-controller-webhook-demo:latest
+IMAGE ?= stevenzou/admission-controller-webhook-demo:dev
 
 image/webhook-server: $(shell find . -name '*.go')
 	CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o $@ ./cmd/webhook-server
