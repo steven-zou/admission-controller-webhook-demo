@@ -14,7 +14,7 @@
 
 # Makefile for building the Admission Controller webhook demo server + docker image.
 
-.DEFAULT_GOAL := docker-image
+.DEFAULT_GOAL := deploy
 
 IMAGE ?= stevenzou/admission-controller-webhook-demo:latest
 
@@ -32,4 +32,4 @@ push-image: docker-image
 .PHONY: deploy
 deploy: push-image
 	kubectl delete namespace webhook-demo
-	$PWD/deploy.sh
+	./deploy.sh

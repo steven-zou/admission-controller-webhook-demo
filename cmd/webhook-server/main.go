@@ -88,6 +88,9 @@ func applySecurityDefaults(req *v1beta1.AdmissionRequest) ([]patchOperation, err
 
 	// Parse the Pod object.
 	raw := req.Object.Raw
+
+	log.Printf("Raw Pod: %s\n", string(raw))
+
 	pod := corev1.Pod{}
 	if _, _, err := universalDeserializer.Decode(raw, nil, &pod); err != nil {
 		return nil, fmt.Errorf("could not deserialize pod object: %v", err)

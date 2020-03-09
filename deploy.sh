@@ -30,8 +30,17 @@ echo "Generating TLS keys ..."
 # Create the `webhook-demo` namespace. This cannot be part of the YAML file as we first need to create the TLS secret,
 # which would fail otherwise.
 echo "Creating Kubernetes objects ..."
+if kubectl get ns -name webhook-demo
+then
+    kubectl delete ns webhook-demo
+fi
 kubectl create namespace webhook-demo
 
+# Clear
+if kubectl get MutatingWebhookConfiguration -name demo-webhook
+then
+    kubectl delete MutatingWebhookConfiguration demo-webhook
+fi
 # Create the TLS secret for the generated keys.
 kubectl -n webhook-demo create secret tls webhook-server-tls \
     --cert "${keydir}/webhook-server-tls.crt" \
