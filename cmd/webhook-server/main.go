@@ -36,7 +36,7 @@ const (
 
 var (
 	podResource = metav1.GroupVersionResource{Version: "v1", Resource: "pods"}
-	registry = "demo.goharbor.io"
+	registry = "demo.goharbor.io/library"
 )
 
 func containDomain(domain string) bool {
@@ -88,10 +88,8 @@ func applySecurityDefaults(req *v1beta1.AdmissionRequest) ([]patchOperation, err
 
 	// Parse the Pod object.
 	raw := req.Object.Raw
-
-	log.Printf("Raw Pod: %s\n", string(raw))
-
 	pod := corev1.Pod{}
+
 	if _, _, err := universalDeserializer.Decode(raw, nil, &pod); err != nil {
 		return nil, fmt.Errorf("could not deserialize pod object: %v", err)
 	}
@@ -102,8 +100,10 @@ func applySecurityDefaults(req *v1beta1.AdmissionRequest) ([]patchOperation, err
 	// Check the images
 	for i, c := range pod.Spec.Containers{
 		if len(c.Image) > 0 {
-			pod.Spec.Containers[i].Image = setImage(c.Image)
-			log.Printf("Mutate image of main containers: %s\n", pod.Spec.Containers[i].Image)
+			cp := &c
+			cp.Image = setImage(c.Image)
+			log.Printf("Mutate image of main containers[%d]: %s\n", i, pod.Spec.Containers[i].Image)
+
 			patches = append(patches, patchOperation{
 				Op:    "add",
 				Path:  "/spec/containers/image",
