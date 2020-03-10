@@ -137,13 +137,32 @@ func applySecurityDefaults(req *v1beta1.AdmissionRequest) ([]patchOperation, err
 		log.Printf("Making secret error: %s", err)
 	}else{
 		log.Print("Append image pulling secret...")
-		patches = append(patches, patchOperation{
-			Op:    "add",
-			Path:  fmt.Sprintf("/spec/imagePullSecrets/%d", 0),
-			// The value must not be true if runAsUser is set to 0, as otherwise we would create a conflicting
-			// configuration ourselves.
-			Value: fmt.Sprintf("image.pulling.secret.%s", "admin"),
-		})
+
+		if pod.Spec.ImagePullSecrets == nil {
+			log.Print("Create imagePullSecrets array...")
+
+			patches = append(patches, patchOperation{
+				Op:    "add",
+				Path:  "/spec/imagePullSecrets",
+				// The value must not be true if runAsUser is set to 0, as otherwise we would create a conflicting
+				// configuration ourselves.
+				Value: []corev1.LocalObjectReference{
+					{
+						Name: fmt.Sprintf("image.pulling.secret.%s", "admin"),
+					},
+				},
+			})
+		}else{
+			patches = append(patches, patchOperation{
+				Op:    "add",
+				Path:  "/spec/imagePullSecrets/-",
+				// The value must not be true if runAsUser is set to 0, as otherwise we would create a conflicting
+				// configuration ourselves.
+				Value: corev1.LocalObjectReference{
+					Name: fmt.Sprintf("image.pulling.secret.%s", "admin"),
+				},
+			})
+		}
 	}
 
 	return patches, nil
