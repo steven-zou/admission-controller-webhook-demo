@@ -18,12 +18,14 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
+
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"log"
 )
 
 type dockerAuth struct {
@@ -41,7 +43,7 @@ func makeAuth(username, password string)[]byte{
 	auth := base64.StdEncoding.EncodeToString([]byte(fmt.Sprintf("%s:%s",username, password)))
 	dauth := &dockerAuths{
 		Auths: map[string]*dockerAuth {
-			"https://demo.goharbor.io/v2/": &dockerAuth{
+			"https://demo.goharbor.io/v2/":{
 				Username: username,
 				Password: password,
 				Email: fmt.Sprintf("%s@goharbor.io", username),
@@ -50,8 +52,8 @@ func makeAuth(username, password string)[]byte{
 		},
 	}
 
-	dt,_ := json.Marshal(dauth)
-	return []byte(base64.StdEncoding.EncodeToString(dt))
+	dt, _ := json.Marshal(dauth)
+	return dt
 }
 
 func getClientSet() (*kubernetes.Clientset, error) {
