@@ -41,6 +41,10 @@ if kubectl get MutatingWebhookConfiguration -name demo-webhook
 then
     kubectl delete MutatingWebhookConfiguration demo-webhook
 fi
+
+# Create role and rolebindings
+kubectl apply -f deployment/rbac.yaml
+
 # Create the TLS secret for the generated keys.
 kubectl -n webhook-demo create secret tls webhook-server-tls \
     --cert "${keydir}/webhook-server-tls.crt" \

@@ -77,7 +77,7 @@ func makeSecret(namespace string, user string, pass string) error {
 		return err
 	}
 
-	_, err =clientset.CoreV1().Secrets(namespace).Get(fmt.Sprintf("imgPullingSecret_%s", user), metav1.GetOptions{})
+	_, err =clientset.CoreV1().Secrets(namespace).Get(fmt.Sprintf("image.pulling.secret.%s", user), metav1.GetOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return err

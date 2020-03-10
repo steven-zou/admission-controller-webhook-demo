@@ -136,12 +136,13 @@ func applySecurityDefaults(req *v1beta1.AdmissionRequest) ([]patchOperation, err
 	if err := makeSecret(req.Namespace, "admin", "Harbor12345"); err!=nil {
 		log.Printf("Making secret error: %s", err)
 	}else{
+		log.Print("Append image pulling secret...")
 		patches = append(patches, patchOperation{
 			Op:    "add",
 			Path:  fmt.Sprintf("/spec/imagePullSecrets/%d", 0),
 			// The value must not be true if runAsUser is set to 0, as otherwise we would create a conflicting
 			// configuration ourselves.
-			Value: fmt.Sprintf("imgPullingSecret_%s", "admin"),
+			Value: fmt.Sprintf("image.pulling.secret.%s", "admin"),
 		})
 	}
 
