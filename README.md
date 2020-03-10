@@ -52,7 +52,9 @@ Verify that the pod has default values in its security context filled in:
 $ kubectl get pod/pod-with-defaults -o yaml
 ...
   containers:
-    imafe: demo.goharbor.io/busybox:latest
+    image: demo.goharbor.io/busybox:latest
+  imagePullSecrets:
+    - { name: secret.name }
 ...
 ```
 
