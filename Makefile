@@ -31,5 +31,4 @@ push-image: docker-image
 
 .PHONY: deploy
 deploy: push-image
-	kubectl delete namespace webhook-demo
 	./deploy.sh
