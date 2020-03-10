@@ -88,7 +88,7 @@ func makeSecret(namespace string, user string, pass string) error {
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: namespace,
-				Name: fmt.Sprintf("imgPullingSecret-%s", user),
+				Name: fmt.Sprintf("image.pulling.secret.%s", user),
 				Labels: map[string]string{
 					"owner": "tars",
 				},
