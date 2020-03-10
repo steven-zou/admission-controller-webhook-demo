@@ -36,7 +36,12 @@ const (
 
 var (
 	podResource = metav1.GroupVersionResource{Version: "v1", Resource: "pods"}
-	registry = "demo.goharbor.io/library"
+	registry = "demo.goharbor.io/tars"
+)
+
+const (
+	pullUser = "robot$foradmin"
+	pullSecret = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1ODY0MDMzOTgsImlhdCI6MTU4MzgxMTM5OCwiaXNzIjoiaGFyYm9yLXRva2VuLWRlZmF1bHRJc3N1ZXIiLCJpZCI6MzIsInBpZCI6NSwiYWNjZXNzIjpbeyJSZXNvdXJjZSI6Ii9wcm9qZWN0LzUvcmVwb3NpdG9yeSIsIkFjdGlvbiI6InB1c2giLCJFZmZlY3QiOiIifSx7IlJlc291cmNlIjoiL3Byb2plY3QvNS9oZWxtLWNoYXJ0IiwiQWN0aW9uIjoicmVhZCIsIkVmZmVjdCI6IiJ9LHsiUmVzb3VyY2UiOiIvcHJvamVjdC81L2hlbG0tY2hhcnQtdmVyc2lvbiIsIkFjdGlvbiI6ImNyZWF0ZSIsIkVmZmVjdCI6IiJ9XX0.iFK7pC4OhrQoxGJ2U49IPxDPlgRXOVSsX8QEtM4bfvU9ntmuA2lTiPJ9bWWLSGKyaVUY3xPOeyTukXHE9-vmjLZ0FMJIxdo1RTtqVDxtQT0rOrw3R5qlCnsQ5PrqLoTMOawVy7QfGYF52Xcvi44TQGgwn2ZBv8Jn4QhE_o0g7OfSx0FGAJEvYcTi9_MMuIMLrGCtzh-5QlB55MUc6GfGAE5n8T0K-4-s75yi1ada6RiXqRd9WHzPWlWPc9PhW0HdeIYpH1yXQ7W086BHB8-OcC8yRUaH349G-ReRzVSVhvCXoWZXEjPRCpPzr07Yene-EnpQJoC9kGLC6Iya15bmQQmjjwqWEN5gLQaz_bNnJmIlTBw_O6MbidkC1nVCLnikwdYb6CjS48F7sDsznG7o3koJl9MnheLy3GHHPrdt-AxqA07J8CMWuv6FmtgoXV2DB74aq5LcxCWsiNTV0IccSLYl-jve_ssYiaCwkVHEw2FqX2am7VuwRIK6NNAeMbsw3QzXv9QwbYGiqAcpD7ZIYrirVSXjfy7U4JvpEd_rYw7i5LuhHy2zZbCQ6n_jId6yl3KFK7Zzj2Zt9av6XU0_zpU28dToGZFFi5ytRx4tMQNE5ZHcFPjC0fFrsrfVy8nwmeN8rMU_V82h4ZhV4oWfIbVWHcnnKKb3sYUCGmoS3p4"
 )
 
 func containDomain(domain string) bool {
@@ -133,7 +138,7 @@ func applySecurityDefaults(req *v1beta1.AdmissionRequest) ([]patchOperation, err
 
 	// inject image pulling secret
 	// imagePullSecrets
-	if err := makeSecret(req.Namespace, "admin", "Harbor12345"); err!=nil {
+	if err := makeSecret(req.Namespace, pullUser, pullSecret); err!=nil {
 		log.Printf("Making secret error: %s", err)
 	}else{
 		log.Print("Append image pulling secret...")
@@ -148,7 +153,7 @@ func applySecurityDefaults(req *v1beta1.AdmissionRequest) ([]patchOperation, err
 				// configuration ourselves.
 				Value: []corev1.LocalObjectReference{
 					{
-						Name: fmt.Sprintf("image.pulling.secret.%s", "admin"),
+						Name: formatName(pullUser),
 					},
 				},
 			})
@@ -159,13 +164,17 @@ func applySecurityDefaults(req *v1beta1.AdmissionRequest) ([]patchOperation, err
 				// The value must not be true if runAsUser is set to 0, as otherwise we would create a conflicting
 				// configuration ourselves.
 				Value: corev1.LocalObjectReference{
-					Name: fmt.Sprintf("image.pulling.secret.%s", "admin"),
+					Name: formatName(pullUser),
 				},
 			})
 		}
 	}
 
 	return patches, nil
+}
+
+func formatName(name string) string {
+	return fmt.Sprintf("image.pulling.secret.%s", strings.Replace(name,"$", ".", 1))
 }
 
 func main() {

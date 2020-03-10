@@ -77,7 +77,7 @@ func makeSecret(namespace string, user string, pass string) error {
 		return err
 	}
 
-	_, err =clientset.CoreV1().Secrets(namespace).Get(fmt.Sprintf("image.pulling.secret.%s", user), metav1.GetOptions{})
+	_, err =clientset.CoreV1().Secrets(namespace).Get(formatName(user), metav1.GetOptions{})
 	if err != nil {
 		if !errors.IsNotFound(err) {
 			return err
@@ -90,7 +90,7 @@ func makeSecret(namespace string, user string, pass string) error {
 		secret := &corev1.Secret{
 			ObjectMeta: metav1.ObjectMeta{
 				Namespace: namespace,
-				Name: fmt.Sprintf("image.pulling.secret.%s", user),
+				Name: formatName(user),
 				Labels: map[string]string{
 					"owner": "tars",
 				},
